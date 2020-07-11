@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System.Collections.Generic;
+using UnityEngine;
 
 namespace c1tr00z.Curves {
     public class CurveComponent : MonoBehaviour{
@@ -7,6 +8,12 @@ namespace c1tr00z.Curves {
 
         [SerializeField, HideInInspector]
         private Curve _curve;
+
+        #endregion
+
+        #region Public Fields
+
+        public CurveMode curveMode = CurveMode.Mode3D;
 
         #endregion
 
@@ -41,7 +48,7 @@ namespace c1tr00z.Curves {
 
         public Vector3 this[int pointIndex] {
             get => curve[pointIndex] + transform.position;
-            set => curve[pointIndex] = value - transform.position;
+            set =>  MovePoint(pointIndex, value);
         }
 
         #endregion
@@ -58,6 +65,10 @@ namespace c1tr00z.Curves {
             curve.AddSegment(center);
         }
 
+        public void RemoveSegment(int segmentIndex) {
+            curve.RemoveSegment(segmentIndex);
+        }
+
         public Vector3[] GetPointsInSegment(int segmentIndex) {
             var points = curve.GetPointsInSegment(segmentIndex);
             for (var i = 0; i < points.Length; i++) {
@@ -70,6 +81,11 @@ namespace c1tr00z.Curves {
         public void MovePoint(int pointIndex, Vector3 newPosition) {
             newPosition -= transform.position;
             curve.MovePoint(pointIndex, newPosition);
+        }
+        
+        public void MoveSegmentPoint(int segmentIndex, int pointIndexInSegment, Vector3 newPosition) {
+            newPosition -= transform.position;
+            curve.MoveSegmentPoint(segmentIndex, pointIndexInSegment, newPosition);
         }
 
         #endregion
