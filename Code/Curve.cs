@@ -12,7 +12,9 @@ namespace c1tr00z.Curves {
 
         [SerializeField, HideInInspector] private List<Vector3> _points;
 
-        [FormerlySerializedAs("_closed")] [SerializeField, HideInInspector] private bool _isClosed;
+        [SerializeField, HideInInspector] private bool _isClosed;
+
+        [SerializeField, HideInInspector] private bool _isAutoSetControlPoints;
 
         #endregion
 
@@ -38,6 +40,21 @@ namespace c1tr00z.Curves {
                     _points.Add(_points[0] * 2 - _points[1]);
                 } else {
                     _points.RemoveRange(_points.Count - 2, 2);
+                }
+            }
+        }
+
+        public bool isAutoSetControlPoints {
+            get => _isAutoSetControlPoints;
+            set {
+                if (_isAutoSetControlPoints == value) {
+                    return;
+                }
+
+                _isAutoSetControlPoints = value;
+
+                if (_isAutoSetControlPoints) {
+                    AutoSetControlPoints();
                 }
             }
         }
@@ -98,6 +115,10 @@ namespace c1tr00z.Curves {
             }
 
             _points = newPoints;
+
+            if (isAutoSetControlPoints) {
+                AutoSetControlPoints();
+            }
         }
 
         public Vector3[] GetPointsInSegment(int segmentIndex) {
@@ -122,6 +143,12 @@ namespace c1tr00z.Curves {
 
             var delta = newPosition - _points[pointIndex];
             _points[pointIndex] = newPosition;
+
+            if (isAutoSetControlPoints) {
+                AutoSetControlPoints();
+                return;
+            }
+            
             var mod = pointIndex % 3;
             if (mod == 0) {
                 if (pointIndex > 0 || isClosed) {
@@ -151,6 +178,77 @@ namespace c1tr00z.Curves {
 
         private int GetPointLoopIndex(int pointIndex) {
             return (pointIndex + _points.Count) % _points.Count;
+        }
+
+        public void AutoSetControlPoints() {
+            var anchorIndexes = new List<int>();
+            for (var i = 0; i < _points.Count; i++) {
+                if (i > 0 && i < _points.Count - 1 && i % 3 == 0) {
+                    anchorIndexes.Add(i);
+                }
+            }
+            for (var i = 0; i < anchorIndexes.Count; i++) {
+                AutoSetControlPoints(anchorIndexes[i]);
+            }
+
+            AutoSetStartEndControlPoints();
+        }
+
+        private void AutoSetControlPoints(int anchorPointIndex) {
+            if (anchorPointIndex >= _points.Count && !isClosed)
+            {
+                Debug.LogError("Point index should be less than points count or curve should be closed");
+                return;
+            }
+            if (anchorPointIndex % 3 != 0) {
+                Debug.LogWarning("Parameter should lead to anchor point");
+                return;
+            } 
+            var anchorPoint = _points[GetPointLoopIndex(anchorPointIndex)];
+            var direction = Vector3.zero;
+            var neighbourDistances = new float[2];
+
+            var firstNeighbourIndex = anchorPointIndex - 3;
+            if (firstNeighbourIndex >= 0 || isClosed) {
+                var offset = _points[GetPointLoopIndex(firstNeighbourIndex)] - anchorPoint;
+                direction += offset.normalized;
+                neighbourDistances[0] = offset.magnitude;
+            }
+            
+            var secondNeighbourIndex = anchorPointIndex + 3;
+            if (secondNeighbourIndex >= 0 || isClosed) {
+                var offset = _points[GetPointLoopIndex(secondNeighbourIndex)] - anchorPoint;
+                direction -= offset.normalized;
+                neighbourDistances[1] = -offset.magnitude;
+            }
+            
+            direction.Normalize();
+            
+            for (var i = 0; i < neighbourDistances.Length; i++) {
+                var controlIndex = anchorPointIndex + i * 2 - 1;
+                if (controlIndex >= 0 && controlIndex < _points.Count || isClosed) {
+                    _points[GetPointLoopIndex(controlIndex)] = anchorPoint + direction * neighbourDistances[i] * .5f;
+                }
+            }
+        }
+
+        private void AutoSetStartEndControlPoints() {
+            if (isClosed) {
+                return;
+            }
+
+            _points[1] = (_points[0] + _points[2]) * .5f;
+            _points[_points.Count - 2] = (_points[_points.Count - 1] + _points[_points.Count - 3]) * .5f;
+        }
+
+        private void AutoSetAffected(int updatedControlPoint) {
+            for (var i = updatedControlPoint - 3; i <= updatedControlPoint + 3; i += 3) {
+                if (i >= 0 && i < _points.Count || isClosed) {
+                    AutoSetControlPoints(i);
+                }
+            }
+            
+            AutoSetStartEndControlPoints();
         }
 
         // public Vector3[] GetPointsOnCurve(int resolution) {

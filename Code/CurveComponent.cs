@@ -43,6 +43,11 @@ namespace c1tr00z.Curves {
             set => curve.isClosed = value;
         }
 
+        public bool isAutoSetControlPoints {
+            get => curve.isAutoSetControlPoints;
+            set => curve.isAutoSetControlPoints = value;
+        }
+
         public int pointsCount => curve.pointsCount;
 
         public int segmentsCount => curve.segmentsCount;
@@ -91,6 +96,10 @@ namespace c1tr00z.Curves {
         public void MoveSegmentPoint(int segmentIndex, int pointIndexInSegment, Vector3 newPosition) {
             newPosition -= transform.position;
             curve.MoveSegmentPoint(segmentIndex, pointIndexInSegment, newPosition);
+        }
+
+        public void AutoSetControlPoints() {
+            curve.AutoSetControlPoints();
         }
 
         #endregion

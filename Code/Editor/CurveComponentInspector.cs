@@ -36,6 +36,16 @@ namespace c1tr00z.Curves.Editor {
                 ToggleClosed(newClosedValue);
             }
             
+            var newIsAutoSetValue = 
+                EditorGUILayout.Toggle("Is auto set control points", curveComponent.isAutoSetControlPoints);
+            if (newIsAutoSetValue != curveComponent.isAutoSetControlPoints) {
+                ToggleAutoSetControlPoints(newIsAutoSetValue);
+            }
+
+            if (GUILayout.Button("Autoset control points")) {
+                AutoSetControlPoints();
+            }
+            
             if (GUILayout.Button("Add segment")) {
                 AddSegment();
             }
@@ -152,6 +162,16 @@ namespace c1tr00z.Curves.Editor {
         private void ToggleClosed(bool newClosedValue) {
             Undo.RecordObject(curveComponent, "Toggle closed");
             curveComponent.isClosed = newClosedValue;
+        }
+
+        private void AutoSetControlPoints() {
+            Undo.RecordObject(curveComponent, "Autoset control points");
+            curveComponent.AutoSetControlPoints();
+        }
+        
+        private void ToggleAutoSetControlPoints(bool newValue) {
+            Undo.RecordObject(curveComponent, "Toggle Autoset control points");
+            curveComponent.isAutoSetControlPoints = newValue;
         }
 
         #endregion
