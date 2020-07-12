@@ -38,6 +38,11 @@ namespace c1tr00z.Curves {
             }
         }
 
+        public bool isClosed {
+            get => curve.isClosed;
+            set => curve.isClosed = value;
+        }
+
         public int pointsCount => curve.pointsCount;
 
         public int segmentsCount => curve.segmentsCount;
@@ -62,7 +67,7 @@ namespace c1tr00z.Curves {
         }
 
         public void AddSegment(Vector3 center) {
-            curve.AddSegment(center);
+            curve.AddSegment(center - transform.position);
         }
 
         public void RemoveSegment(int segmentIndex) {

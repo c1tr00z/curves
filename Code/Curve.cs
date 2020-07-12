@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace c1tr00z.Curves {
     [Serializable]
@@ -11,6 +12,8 @@ namespace c1tr00z.Curves {
 
         [SerializeField, HideInInspector] private List<Vector3> _points;
 
+        [FormerlySerializedAs("_closed")] [SerializeField, HideInInspector] private bool _isClosed;
+
         #endregion
 
         #region Accessors
@@ -19,7 +22,25 @@ namespace c1tr00z.Curves {
 
         public int pointsCount => points.Length;
 
-        public int segmentsCount => (points.Length - 1) / 3;
+        public int segmentsCount => points.Length / 3;
+
+        public bool isClosed {
+            get => _isClosed;
+            set {
+                if (_isClosed == value) {
+                    return;
+                }
+
+                _isClosed = value;
+                
+                if (isClosed) {
+                    _points.Add(_points[_points.Count - 1] * 2 - _points[_points.Count - 2]);
+                    _points.Add(_points[0] * 2 - _points[1]);
+                } else {
+                    _points.RemoveRange(_points.Count - 2, 2);
+                }
+            }
+        }
         
         #endregion
 
@@ -47,10 +68,10 @@ namespace c1tr00z.Curves {
 
         public Curve(Vector3 center) {
             _points = new List<Vector3> {
-                center + Vector3.left,
-                center + (Vector3.left + Vector3.up) * .5f,
-                center + (Vector3.right + Vector3.down) * .5f,
-                center + Vector3.right
+                center + Vector3.left + Vector3.forward,
+                center + Vector3.forward + Vector3.up,
+                center + Vector3.back + Vector3.down,
+                center + Vector3.right + Vector3.back
             };
         }
 
@@ -82,7 +103,7 @@ namespace c1tr00z.Curves {
         public Vector3[] GetPointsInSegment(int segmentIndex) {
             return new Vector3[] {
                 _points[segmentIndex * 3], _points[segmentIndex * 3 + 1], 
-                _points[segmentIndex * 3 + 2], _points[segmentIndex * 3 + 3]
+                _points[segmentIndex * 3 + 2], _points[GetPointLoopIndex(segmentIndex * 3 + 3)]
             };
         }
 
@@ -103,20 +124,22 @@ namespace c1tr00z.Curves {
             _points[pointIndex] = newPosition;
             var mod = pointIndex % 3;
             if (mod == 0) {
-                if (pointIndex > 0) {
-                    _points[pointIndex - 1] += delta;
+                if (pointIndex > 0 || isClosed) {
+                    _points[GetPointLoopIndex(pointIndex - 1)] += delta;
                 }
 
-                if (pointIndex < _points.Count - 1) {
-                    _points[pointIndex + 1] += delta;
+                if (pointIndex < _points.Count - 1 || isClosed) {
+                    _points[GetPointLoopIndex(pointIndex + 1)] += delta;
                 }
             } else if (mod == 1) {
-                if (pointIndex > 1) {
-                    _points[pointIndex - 2] = _points[pointIndex - 1] - (_points[pointIndex] - _points[pointIndex - 1]);
+                if (pointIndex > 1 || isClosed) {
+                    _points[GetPointLoopIndex(pointIndex - 2)] = _points[GetPointLoopIndex(pointIndex - 1)] - (_points[GetPointLoopIndex(pointIndex)] - _points[
+                                                                                                  GetPointLoopIndex(pointIndex - 1)]);
                 }
             } else if (mod == 2) {
-                if (pointIndex < _points.Count - 2) {
-                    _points[pointIndex + 2] = _points[pointIndex + 1] - (_points[pointIndex] - _points[pointIndex + 1]);
+                if (pointIndex < _points.Count - 2 || isClosed) {
+                    _points[GetPointLoopIndex(pointIndex + 2)] = _points[GetPointLoopIndex(pointIndex + 1)] - (_points[GetPointLoopIndex(pointIndex)] - _points[
+                                                                                                  GetPointLoopIndex(pointIndex + 1)]);
                 }
             }
         }
@@ -125,6 +148,14 @@ namespace c1tr00z.Curves {
             var realPointIndex = segmentIndex * 3 + pointIndexInSegment;
             MovePoint(realPointIndex, newPosition);
         }
+
+        private int GetPointLoopIndex(int pointIndex) {
+            return (pointIndex + _points.Count) % _points.Count;
+        }
+
+        // public Vector3[] GetPointsOnCurve(int resolution) {
+        //     
+        // }
 
         #endregion
     }
