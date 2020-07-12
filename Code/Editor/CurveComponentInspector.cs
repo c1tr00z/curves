@@ -1,5 +1,4 @@
-﻿using System;
-using c1tr00z.AssistLib.Utils;
+﻿using c1tr00z.AssistLib.Utils;
 using UnityEditor;
 using UnityEngine;
 
@@ -12,6 +11,10 @@ namespace c1tr00z.Curves.Editor {
         private CurveComponent _curveComponent;
 
         private bool _showSegments;
+
+        private bool _showPoints;
+        
+        private int _resolution = 1;
 
         #endregion
         
@@ -44,6 +47,13 @@ namespace c1tr00z.Curves.Editor {
 
             if (GUILayout.Button("Autoset control points")) {
                 AutoSetControlPoints();
+            }
+
+            _showPoints = EditorGUILayout.Foldout(_showPoints, "ShowPoints");
+
+            if (_showPoints) {
+                _resolution = EditorGUILayout.IntField("Resolution", _resolution);
+                _resolution = _resolution < 1 ? 1 : _resolution;
             }
             
             if (GUILayout.Button("Add segment")) {
@@ -85,6 +95,7 @@ namespace c1tr00z.Curves.Editor {
         private void OnSceneGUI() {
             Input();
             DrawHandles();
+            DrawPointsOnCurve();
         }
 
         private void DrawHandles() {
@@ -120,6 +131,8 @@ namespace c1tr00z.Curves.Editor {
                 Handles.DrawLine(segment[0], segment[1]);
                 Handles.DrawLine(segment[2], segment[3]);
             }
+            
+            Handles.color = handlesColor;
         }
 
         private void Input() {
@@ -133,6 +146,20 @@ namespace c1tr00z.Curves.Editor {
                     AddSegment();
                 }
             }
+        }
+
+        private void DrawPointsOnCurve() {
+            if (!_showPoints) {
+                return;
+            }
+            var handlesColor = Handles.color;
+            var points = curveComponent.CalculatePointsOnCurve(_resolution);
+            Handles.color = Color.gray;
+            for (var i = 0; i < points.Length; i++) {
+                Handles.FreeMoveHandle(points[i], Quaternion.identity, 
+                    .05f, Vector3.zero, Handles.SphereHandleCap);
+            }
+            Handles.color = handlesColor;
         }
 
         private void AddSegment() {

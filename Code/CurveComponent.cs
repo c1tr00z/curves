@@ -102,6 +102,10 @@ namespace c1tr00z.Curves {
             curve.AutoSetControlPoints();
         }
 
+        public Vector3[] CalculatePointsOnCurve(int resolution) {
+            return curve.CalculatePointsOnCurve(resolution);
+        }
+
         #endregion
     }
 }

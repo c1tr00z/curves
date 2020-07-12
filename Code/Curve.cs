@@ -251,9 +251,68 @@ namespace c1tr00z.Curves {
             AutoSetStartEndControlPoints();
         }
 
-        // public Vector3[] GetPointsOnCurve(int resolution) {
-        //     
-        // }
+        private float CalculateSegmentLenght(int segmentIndex) {
+            var segmentPoints = GetPointsInSegment(segmentIndex);
+            var controlNetSize = Vector3.Distance(segmentPoints[0], segmentPoints[1]) +
+                                 Vector3.Distance(segmentPoints[1], segmentPoints[2]) +
+                                 Vector3.Distance(segmentPoints[2], segmentPoints[3]);
+
+            var curveLength = Vector3.Distance(segmentPoints[0], segmentPoints[3]) + controlNetSize / 2;
+            return curveLength;
+        }
+
+        private float CalculateCurveLength() {
+            var curveLength = 0f;
+            for (int i = 0; i < segmentsCount; i++) {
+                curveLength += CalculateSegmentLenght(i);
+            }
+
+            return curveLength;
+        }
+
+        public Vector3[] CalculatePointsOnCurve(int resolution) {
+            var calculatedPoints = new List<Vector3>();
+            calculatedPoints.Add(_points[0]);
+
+            var prevPoint = points[0];
+            var distanceFromLastPoint = 0f;
+
+            resolution = resolution < segmentsCount ? segmentsCount : resolution;
+
+            var spacing = CalculateCurveLength() / resolution;
+
+            for (int segmentIndex = 0; segmentIndex < segmentsCount; segmentIndex++) {
+                var segmentPoints = GetPointsInSegment(segmentIndex);
+                var divisions = Mathf.CeilToInt(resolution);
+                float t = 0;
+                while (t <= 1f) {
+                    t += 1f/divisions;
+
+                    var pointOnCurve = BezierUtils.EvalCubic(segmentPoints[0], segmentPoints[1], 
+                        segmentPoints[2], segmentPoints[3], t);
+
+                    distanceFromLastPoint += Vector3.Distance(prevPoint, pointOnCurve);
+
+                    while (distanceFromLastPoint >= spacing) {
+                        float overshoot = distanceFromLastPoint - spacing;
+                        var newPoint = pointOnCurve + (prevPoint - pointOnCurve).normalized * overshoot;
+                        calculatedPoints.Add(newPoint);
+                        distanceFromLastPoint = overshoot;
+                        prevPoint = newPoint;
+                    }
+
+                    prevPoint = pointOnCurve;
+                }
+            }
+
+            if ((_points.Last() - calculatedPoints.Last()).magnitude > .01f) {
+                calculatedPoints.Add(_points.Last());
+            } else {
+                // Debug.LogError($"Prev: {prevPoint} / Last: {_points.Last()}");
+            }
+            
+            return calculatedPoints.ToArray();
+        }
 
         #endregion
     }
